@@ -8,7 +8,7 @@ import { GameStatus } from '@/types/GameStatus'
 type Board = O.Option<Side>[]
 
 module Board {
-    export const set = (index: number) => (side: Side) => (board: Board) => { 
+    export const set = (index: number) => (side: Side) => (board: Board) : Board => { 
         const nextBoard = [...board] // deep copy
         nextBoard[index] = O.some(side)
         return nextBoard
@@ -83,10 +83,13 @@ module CPU {
             F.pipe(
                 board,
                 Board.getSelectableIndices, 
-                A.map<number, [O.Option<number>, number]>((index) => {
-                    const nextBoard = Board.set(index)(turn)(board)
+                A.map<number, [O.Option<number>, number]>((index) => { 
                     const [_, ret] = 
-                        minimax (evaluate) (!isMaximizing) (depth - 1) (turn === 'O' ? 'X' : 'O') (nextBoard)
+                        F.pipe( 
+                            board,
+                            Board.set(index)(turn) ,
+                            minimax (evaluate) (!isMaximizing) (depth - 1) (turn === 'O' ? 'X' : 'O')
+                        ) 
                     return [O.some (index), ret] 
                 }),   
                 A.reduce<[O.Option<number>, number], [O.Option<number>, number]>(
@@ -99,7 +102,50 @@ module CPU {
                 ) 
             ) 
         ) 
-    }    
+    }
+
+    export const alphabeta =
+        (evaluate : (board: Board) => number) =>
+        (isMaximizing: boolean) =>  
+        (alpha: number, beta: number) =>
+        (depth: number) => 
+        (turn: Side) => 
+        (board: Board) : [O.Option<number>, number] => { 
+        if (depth === 0 || O.isSome(Board.isFinished(board))) { 
+            return [O.none, evaluate (board)]
+        }
+        else { 
+            if (isMaximizing) {
+                let ax = alpha  
+                let sel : O.Option<number> = O.none
+                for (const index of Board.getSelectableIndices(board)) {
+                    const nextBoard = Board.set(index)(turn)(board) 
+                    const [_, a] = alphabeta (evaluate) (!isMaximizing) (ax, beta) (depth - 1) (turn === 'O' ? 'X' : 'O') (nextBoard)
+                    if (ax < a) { 
+                        ax = a
+                        sel = O.some(index)
+                    }
+                    if (ax >= beta) break
+                }
+                return [sel, ax] 
+            }
+            else {
+                let bx = beta
+                let sel : O.Option<number> = O.none
+                for (const index of Board.getSelectableIndices(board)) {
+                    const nextBoard = Board.set(index)(turn)(board) 
+                    const [_, b] = alphabeta (evaluate) (!isMaximizing) (alpha, bx) (depth - 1) (turn === 'O' ? 'X' : 'O') (nextBoard)
+                    bx = Math.min(bx, b) 
+                    if (b < bx) { 
+                        bx = b
+                        sel = O.some(index)
+                    }
+                    if (alpha >= bx) break
+                }
+                return [sel, bx]
+            }
+        } 
+}
 
     export const randomSelect = (board: Board) => { 
         const candidates = Board.getSelectableIndices (board) 
@@ -160,16 +206,27 @@ export default (XisCPU : boolean, OisCPU : boolean): {
  
     useEffect(() => {  
         if (state.status === 'playing' 
-            && ((state.turn == 'X' && XisCPU) || (state.turn == 'O' && OisCPU))) {  
-            
+            && ((state.turn == 'X' && XisCPU) || (state.turn == 'O' && OisCPU))) {   
             F.pipe(
-                CPU.minimax (CPU.evaluateBoard (state.turn)) (true) (9) (state.turn) (state.board) ,
-                ([move, _]) => move,
+                CPU.alphabeta (CPU.evaluateBoard (state.turn)) (true) (-Infinity, Infinity) (9) (state.turn) (state.board) ,
+                ([move, a]) => {
+                    console.log(move + " " + a)
+                    return   move
+                },
                 O.match(
                     () => {},
                     (index) => updateState(index) 
                 ) 
             )
+    
+            // F.pipe(
+            //     CPU.minimax (CPU.evaluateBoard (state.turn)) (true) (9) (state.turn) (state.board) ,
+            //     ([move, _]) => move,
+            //     O.match(
+            //         () => {},
+            //         (index) => updateState(index) 
+            //     ) 
+            // )
 
             // F.pipe(
             //     CPU.randomSelect (state.board),
