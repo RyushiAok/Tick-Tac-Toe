@@ -19,9 +19,13 @@
     // https://zuma-lab.com/posts/typescript-import-absolute-path-settings
     "baseUrl": ".",
     "paths": {
-        "@/*": ["src/*"]
+        "@/*": ["src/*"],
+        "~/*": ["public/*"]
     },
   },
-  "include": ["src"],
+  "include": [
+    "src",
+
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
