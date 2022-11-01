@@ -16,9 +16,9 @@ const Game = (props: Props) => {
             color: 'white', 
         },
         button: {
-            width: '150px',
-            height : "150px",
-            fontSize: '45px', 
+            width: '90px',
+            height : "90px",
+            fontSize: '25px', 
             margin: '3px', 
         }
     }
