@@ -48,13 +48,6 @@ module Board {
             )
         )  
 }
-
-type GameState = {
-    board: Board
-    status: GameStatus
-    turn: Side
-    winner: O.Option<Side>
-} 
  
 module CPU {
     export const evaluateBoard = (turn: Side) => (board: Board) => 
@@ -147,7 +140,7 @@ module CPU {
         } 
 }
 
-    export const randomSelect = (board: Board) => { 
+    export const random = (board: Board) => { 
         const candidates = Board.getSelectableIndices (board) 
         return ( 
             (candidates.length > 0)
@@ -158,6 +151,13 @@ module CPU {
 
 }
 
+
+type GameState = {
+    board: Board
+    status: GameStatus
+    turn: Side
+    winner: O.Option<Side>
+} 
  
 
 export default (XisCPU : boolean, OisCPU : boolean): {
@@ -209,10 +209,7 @@ export default (XisCPU : boolean, OisCPU : boolean): {
             && ((state.turn == 'X' && XisCPU) || (state.turn == 'O' && OisCPU))) {   
             F.pipe(
                 CPU.alphabeta (CPU.evaluateBoard (state.turn)) (true) (-Infinity, Infinity) (9) (state.turn) (state.board) ,
-                ([move, a]) => {
-                    console.log(move + " " + a)
-                    return   move
-                },
+                ([move, _]) => move,
                 O.match(
                     () => {},
                     (index) => updateState(index) 
@@ -229,7 +226,7 @@ export default (XisCPU : boolean, OisCPU : boolean): {
             // )
 
             // F.pipe(
-            //     CPU.randomSelect (state.board),
+            //     CPU.random (state.board),
             //     O.match(
             //         () => {},
             //         (index) => updateState(index)
